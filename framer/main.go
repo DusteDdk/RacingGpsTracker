@@ -20,6 +20,8 @@ import (
 	"strings"
 	"time"
 
+	"container/ring"
+
 	"github.com/adrianmo/go-nmea"
 	"github.com/llgcode/draw2d"
 	"github.com/llgcode/draw2d/draw2dimg"
@@ -163,6 +165,8 @@ func main() {
 	firstLap := flag.Int("firstLap", 0, "Don't count crossing finishLine the first N times  (optional)")
 	lastLap := flag.Int("lastLap", 100, "Don't count crossing finishLine after N times (optional)")
 
+	speedGraph := flag.Bool("speedGraph", true, "Show the speed-graph")
+
 	flag.Parse()
 
 	if *inFile == "" || *outDir == "" {
@@ -265,7 +269,7 @@ func main() {
 
 	fgc := draw2dimg.NewGraphicContext(frame)
 
-	// Set some properties
+	maxSpeed := 0.0
 
 	scaleX := mapSize / (maxX - minX)
 	scaleY := mapSize / (maxY - minY)
@@ -284,6 +288,10 @@ func main() {
 			x = (x - minX) * scaleX
 			y = (y - minY) * scaleY
 
+			if val.Speed > maxSpeed {
+				maxSpeed = val.Speed
+			}
+
 			if i != 0 {
 				fgc.LineTo(x, y)
 
@@ -301,6 +309,8 @@ func main() {
 			}
 		}
 	}
+
+	maxSpeed *= 1.852
 
 	setMapCoords(fgc)
 
@@ -361,6 +371,20 @@ func main() {
 	overFinish := 0
 	curLap := 0 - *firstLap
 
+	curSpeed := 0.0
+
+	graphHeight := 150.0
+	graphWidth := 400.0
+
+	const numGraphSamples = 200
+	speedRing := ring.New(numGraphSamples)
+
+	for i := 0; i < numGraphSamples; i++ {
+		speedRing.Value = graphHeight - 1
+		speedRing = speedRing.Next()
+	}
+
+	// Final iteration
 	for cf, val := range samples {
 
 		validSample := (val.Validity == "A")
@@ -414,7 +438,52 @@ func main() {
 				dot(fgc, x, y)
 				unsetMapCoords(fgc)
 				// Display current speed
-				outline(fgc, width/2-372/2+20, height-20, color.RGBA{255, 255, 255, 255}, fmt.Sprintf("%05.1f km/h", val.Speed*1.852), 70)
+				curSpeed = val.Speed * 1.852
+				outline(fgc, width/2-372/2+20, height-20, color.RGBA{255, 255, 255, 255}, fmt.Sprintf("%05.1f km/h", curSpeed), 70)
+
+				//Display the speed-graph
+				if *speedGraph {
+
+					fgc.Translate(1510, 920)
+					fgc.BeginPath()
+					fgc.SetFillColor(color.RGBA{0, 0, 0, 64})
+					fgc.SetLineWidth(1)
+					fgc.MoveTo(0, 0)
+					fgc.LineTo(graphWidth, 0)
+					fgc.LineTo(graphWidth, graphHeight)
+					fgc.LineTo(0, graphHeight)
+					fgc.LineTo(0, 0)
+					path := fgc.GetPath()
+
+					fgc.Fill()
+
+					speedRing.Value = (curSpeed/maxSpeed)*-graphHeight + graphHeight
+					speedRing = speedRing.Next()
+
+					fgc.BeginPath()
+					fgc.SetStrokeColor(color.RGBA{0xff, 0xff, 0xff, 0xff})
+					fgc.SetLineWidth(2)
+					fgc.MoveTo(0, speedRing.Value.(float64))
+
+					sw := graphWidth / numGraphSamples
+					for i := 0; i < numGraphSamples; i++ {
+						fgc.LineTo(float64(i)*sw+sw, speedRing.Value.(float64))
+						speedRing = speedRing.Next()
+					}
+					fgc.Stroke()
+
+					fgc.SetStrokeColor(color.RGBA{0, 0, 0, 0xff})
+					fgc.SetLineWidth(1)
+					fgc.Stroke(&path)
+
+					msg := fmt.Sprintf("%.1f", maxSpeed)
+					fgc.SetFontSize(20)
+					fgc.SetFillColor(color.RGBA{255, 255, 255, 255})
+					_, h, r, _ := fgc.GetStringBounds(msg)
+					fgc.FillStringAt(msg, graphWidth-r-2, -h+2)
+
+					fgc.Translate(-1510, -920) // I REGRET NOTHING! If it had a translation stack I'd not have to resort to such violence.
+				}
 
 				// Display current lap
 				if overFinish > 0 {
@@ -433,6 +502,7 @@ func main() {
 					}
 
 				}
+
 			}
 
 			// Display frame number

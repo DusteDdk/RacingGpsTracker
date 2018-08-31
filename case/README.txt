@@ -1,2 +1,1 @@
-I will try and find the OpenSCAD files for the box, but I might have lost that too..
-Does not matter, I will make a better box some day.
+This is not a very good box, it is too tight, and difficult to take apart again. On the positive side, it does work, and is pretty stable.
