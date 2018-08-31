@@ -7,8 +7,11 @@ then
 fi
 
 set -e
-cd "$1"
+
 OUTVID=`realpath "$2"`
+INDIR="$1"
+
+cd "$INDIR"
 ffmpeg -r 10 -i frame%06d.png -c:v libx264 -vf fps=59.94 -pix_fmt yuv420p -preset veryfast "$OUTVID"
 
 echo "Rendered $OUTVID"
