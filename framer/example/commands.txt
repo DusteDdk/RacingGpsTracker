@@ -1,0 +1,10 @@
+# To generate the video frames
+mkdir out
+./framer -first 1425 -in test.rmc -out out/ -trackFirst 120 -trackLast 8425 -last 10000 -finishAt 965 --finishAngle -38  -firstLap 1 -lastLap 9
+
+# To generate a video for alignment (finding the offset)
+bash render-alignment-video.sh out align.mp4
+
+# To generate the video (this part you can't do, since you don't have the source video)
+# There was 11 seconds, and 21 ms from the start of the video, until the first frame of the alignment video
+bash render-video.sh out race1.mp4 race1-gpsoverlay.mp4 11.21

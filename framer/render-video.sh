@@ -18,7 +18,7 @@ cd "$INDIR"
 
 ffmpeg -i "$INVID" -framerate 10 -itsoffset $OFFSET -i frame%06d.png \
  -filter_complex "[0:v]overlay=enable=gte(t\,$OFFSET):shortest=1[out]" \
- -map [out] -map 0:a   -c:v libx264 -preset slower -crf 20 -c:a copy \
+ -map [out] -map 0:a   -c:v libx264 -preset slow -crf 20 -c:a copy \
  -pix_fmt yuv420p "$OUTVID"
 
 echo "Rendered $OUTVID"

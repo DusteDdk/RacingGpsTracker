@@ -278,6 +278,6 @@
 // Here are the parts, render one at a time!
 // Remove the translations if you like.. just there because they look cool
 translate([100,0,0 ]) top();
-translate([0,50,0 ] ) middle();
-bottom();
+//translate([0,50,0 ] ) middle();
+//bottom();
 
