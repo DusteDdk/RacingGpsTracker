@@ -1,0 +1,3 @@
+I've seen FFMPEG throw up for no explainable reason when doing the video + overlay.
+Instead you can render the overlay to PNGs in a MOV container, and use a program such as kdenlive to combine the two clips:
+ffmpeg -r 10 -i frame%06d.png -c:v png gps-overlay.mov
