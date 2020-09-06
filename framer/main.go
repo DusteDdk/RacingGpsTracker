@@ -30,8 +30,7 @@ import (
 
 // Point - A point indeed
 type Point struct {
-	x float64
-	y float64
+	x, y float64
 }
 
 // Line - Another representation of a line
@@ -131,7 +130,7 @@ func outline(ctx draw2d.GraphicContext, x float64, y float64, col color.Color, t
 	ctx.FillStringAt(text, x, y)
 }
 
-const mapSize = 500.0
+var mapSize = 500.0
 
 func unsetMapCoords(ctx draw2d.GraphicContext) {
 	ctx.Rotate((1.570796 * 2) * -1)
@@ -167,6 +166,11 @@ func main() {
 
 	speedGraph := flag.Bool("speedGraph", true, "Show the speed-graph")
 
+    userScaleX := flag.Float64("mapScaleX", 1.0, "Scale map in X direction (to undistort maps stretched too wide)")
+    userScaleY := flag.Float64("mapScaleY", 1.0, "Scale map in Y direction (to undistort maps stretched too tall)")
+    userMapSize := flag.Float64("mapSize", mapSize, "Single number, describes both width and height, map is square.)")
+    mapSize := userMapSize
+
 	flag.Parse()
 
 	if *inFile == "" || *outDir == "" {
@@ -180,7 +184,7 @@ func main() {
 	const mapPosX = 5.0
 	const mapPosY = 5.0
 
-	const fps = 59.94
+	const fps = 59.94006
 	const frameTime = 1000.0 / fps
 	const gpsHz = 10.0
 	const framesPrGpsSample = gpsHz / fps
@@ -241,7 +245,7 @@ func main() {
 
 			if m.Validity == "A" {
 
-				x, y := toxy(m, mapSize)
+				x, y := toxy(m, *mapSize)
 
 				if x < minX {
 					minX = x
@@ -271,8 +275,8 @@ func main() {
 
 	maxSpeed := 0.0
 
-	scaleX := mapSize / (maxX - minX)
-	scaleY := mapSize / (maxY - minY)
+	scaleX := (*mapSize / (maxX - minX)) * (*userScaleX)
+	scaleY := (*mapSize / (maxY - minY)) * (*userScaleY)
 
 	var finishLine Line
 
@@ -283,7 +287,7 @@ func main() {
 		validSample := (val.Validity == "A")
 		if validSample && i >= *firstTrackSample && i <= *lastTrackSample {
 
-			x, y := toxy(val, mapSize)
+			x, y := toxy(val, *mapSize)
 
 			x = (x - minX) * scaleX
 			y = (y - minY) * scaleY
@@ -330,9 +334,9 @@ func main() {
 		fgc.SetStrokeColor(color.RGBA{255, 0, 0, 0xff})
 		fgc.SetLineWidth(1)
 		fgc.MoveTo(0, 0)
-		fgc.LineTo(mapSize, 0)
-		fgc.LineTo(mapSize, mapSize)
-		fgc.LineTo(0, mapSize)
+		fgc.LineTo(*mapSize, 0)
+		fgc.LineTo(*mapSize, *mapSize)
+		fgc.LineTo(0, *mapSize)
 		fgc.LineTo(0, 0)
 		fgc.Stroke()
 	}
@@ -392,7 +396,7 @@ func main() {
 		// Extract
 		if validSample {
 
-			x, y = toxy(val, mapSize)
+			x, y = toxy(val, *mapSize)
 			x = (x - minX) * scaleX
 			y = (y - minY) * scaleY
 
